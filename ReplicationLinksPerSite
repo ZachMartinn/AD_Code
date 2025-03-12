@@ -1,0 +1,42 @@
+# Import the Active Directory module (if not already loaded)
+Import-Module ActiveDirectory
+
+# Define the output file path
+$outputFile = "C:\AD_Sites_Info.txt"
+
+# Clear the output file if it exists
+Clear-Content -Path $outputFile
+
+# Get all AD sites
+$sites = Get-ADReplicationSite
+
+# Loop through each site and retrieve associated subnets and replication links
+foreach ($site in $sites) {
+    Add-Content -Path $outputFile -Value "Site: $($site.Name)"
+    
+    # Get subnets associated with this site
+    $subnets = Get-ADReplicationSubnet -Filter * | Where-Object { $_.Site -eq $site.Name }
+    if ($subnets) {
+        foreach ($subnet in $subnets) {
+            Add-Content -Path $outputFile -Value "`tSubnet: $($subnet.Name)"
+        }
+    } else {
+        Add-Content -Path $outputFile -Value "`tNo subnets found for this site."
+    }
+
+    # Get replication links (site links) associated with this site
+    $siteLinks = Get-ADReplicationSiteLink -Filter * | Where-Object { $_.SitesIncluded -contains $site.DistinguishedName }
+    if ($siteLinks) {
+        foreach ($link in $siteLinks) {
+            Add-Content -Path $outputFile -Value "`tReplication Link: $($link.Name)"
+            Add-Content -Path $outputFile -Value "`t`tCost: $($link.Cost)"
+            Add-Content -Path $outputFile -Value "`t`tReplication Interval (Minutes): $($link.ReplicationFrequencyInMinutes)"
+        }
+    } else {
+        Add-Content -Path $outputFile -Value "`tNo replication links found for this site."
+    }
+
+    Add-Content -Path $outputFile -Value ""
+}
+
+Write-Host "Data saved to $outputFile"
