@@ -1,0 +1,31 @@
+Function Get-DSTree {
+  [cmdletbinding()]
+  [OutputType("string")]
+  Param(
+      [ADSI]$ADSPath="LDAP://DC=company,DC=Pri",
+      [int]$Indent=0
+      )
+ 
+  [string]$leader=" "
+  [int]$pad = $leader.length+$indent
+ 
+  $searcher = New-Object directoryservices.directorysearcher
+  $searcher.pagesize=100
+  #get containers and OUs
+  #$searcher.Filter = "(|(objectclass=container)(objectclass=organizationalUnit))"
+ 
+  #get only OUs
+  $Searcher.filter = "(&(objectclass=organizationalUnit))"
+  $searcher.searchScope="OneLevel"
+  $searcher.searchRoot = $ADSPath
+  [void]$searcher.PropertiesToLoad.Add("DistinguishedName")
+ 
+  $searcher.FindAll() | ForEach-Object {
+   $branch = "{0}{1}" -f ($leader.Padleft($pad,$leader),$_.properties.distinguishedname[0])
+   $branch
+    Get-DSTree -ADSPath $_.path -indent ($pad+2)
+  }
+}
+ 
+# Run the function
+Get-DSTree
