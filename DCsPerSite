@@ -1,0 +1,45 @@
+# Import the Active Directory module (if not already loaded)
+Import-Module ActiveDirectory
+
+# Define the output file path
+$outputFile = "C:\AD_Sites_DomainControllers.txt"
+
+# Clear the output file if it exists
+Clear-Content -Path $outputFile
+
+# Get all Active Directory sites
+$sites = Get-ADReplicationSite
+
+# Loop through each site and retrieve associated domain controllers
+foreach ($site in $sites) {
+    # Output to console
+    Write-Host "Site: $($site.Name)"
+    
+    # Output to file
+    Add-Content -Path $outputFile -Value "Site: $($site.Name)"
+    
+    # Get domain controllers associated with this site
+    $domainControllers = Get-ADDomainController -Filter * | Where-Object { $_.Site -eq $site.Name }
+    
+    if ($domainControllers) {
+        foreach ($dc in $domainControllers) {
+            # Output to console
+            Write-Host "`tDomain Controller: $($dc.Name) - $($dc.HostName)"
+            
+            # Output to file
+            Add-Content -Path $outputFile -Value "`tDomain Controller: $($dc.Name) - $($dc.HostName)"
+        }
+    } else {
+        # Output to console
+        Write-Host "`tNo domain controllers found in this site."
+        
+        # Output to file
+        Add-Content -Path $outputFile -Value "`tNo domain controllers found in this site."
+    }
+
+    # Add a blank line in the file for readability
+    Write-Host ""
+    Add-Content -Path $outputFile -Value ""
+}
+
+Write-Host "Data saved to $outputFile"
